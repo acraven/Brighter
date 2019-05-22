@@ -41,6 +41,18 @@ namespace Paramore.Brighter
         private readonly IAmALifetime _instanceScope;
         private readonly IAmAHandlerFactoryAsync _asyncHandlerFactory;
 
+        public PipelineBuilder(
+            IAmASubscriberRegistry registry,
+            IAmAHandlerFactory handlerFactory,
+            IAmAHandlerFactoryAsync asyncHandlerFactory) 
+        {
+            
+            _handlerFactory = handlerFactory;
+            _asyncHandlerFactory = asyncHandlerFactory;
+            _instanceScope = new LifetimeScope(handlerFactory);
+            _interpreter = new Interpreter<TRequest>(registry, handlerFactory);
+        }
+
         public PipelineBuilder(IAmASubscriberRegistry registry, IAmAHandlerFactory handlerFactory) 
         {
             _handlerFactory = handlerFactory;

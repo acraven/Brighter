@@ -34,7 +34,7 @@ namespace Paramore.Brighter
     /// The default implementation is <see cref="PipelineBuilder{T}"/>
     /// </summary>
     /// <typeparam name="TRequest">The type of the t request.</typeparam>
-    internal interface IAmAnAsyncPipelineBuilder<TRequest> : IDisposable where TRequest : class, IRequest
+    public interface IAmAnAsyncPipelineBuilder<TRequest> : IDisposable where TRequest : class, IRequest
     {
         /// <summary>
         /// Builds the specified request context.

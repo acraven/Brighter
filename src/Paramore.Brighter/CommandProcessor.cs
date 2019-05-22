@@ -44,9 +44,10 @@ namespace Paramore.Brighter
         private static readonly Lazy<ILog> _logger = new Lazy<ILog>(LogProvider.For<CommandProcessor>);
 
         private readonly IAmAMessageMapperRegistry _mapperRegistry;
-        private readonly IAmASubscriberRegistry _subscriberRegistry;
-        private readonly IAmAHandlerFactory _handlerFactory;
-        private readonly IAmAHandlerFactoryAsync _asyncHandlerFactory;
+        //private readonly IAmASubscriberRegistry _subscriberRegistry;
+        //private readonly IAmAHandlerFactory _handlerFactory;
+        //private readonly IAmAHandlerFactoryAsync _asyncHandlerFactory;
+        private readonly IAmAPipelineBuilderFactory _pipelineBuilderFactory;
         private readonly IAmARequestContextFactory _requestContextFactory;
         private readonly IPolicyRegistry<string>  _policyRegistry;
         private readonly int _messageStoreTimeout;
@@ -89,69 +90,17 @@ namespace Paramore.Brighter
         /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
         /// Use this constructor when no task queue support is required
         /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="handlerFactory">The handler factory.</param>
-        /// <param name="asyncHandlerFactory">The async handler factory.</param>
+        /// <param name="pipelineBuilderFactory">The pipeline builder factory.</param>
         /// <param name="requestContextFactory">The request context factory.</param>
         /// <param name="policyRegistry">The policy registry.</param>
         /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
         public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactory handlerFactory,
-            IAmAHandlerFactoryAsync asyncHandlerFactory,
+            IAmAPipelineBuilderFactory pipelineBuilderFactory,
             IAmARequestContextFactory requestContextFactory,
             IPolicyRegistry<string> policyRegistry,
             IAmAFeatureSwitchRegistry featureSwitchRegistry = null)
         {
-            _subscriberRegistry = subscriberRegistry;
-            _handlerFactory = handlerFactory;
-            _asyncHandlerFactory = asyncHandlerFactory;
-            _requestContextFactory = requestContextFactory;
-            _policyRegistry = policyRegistry;
-            _featureSwitchRegistry = featureSwitchRegistry;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
-        /// Use this constructor when no task queue support is required
-        /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="handlerFactory">The handler factory.</param>
-        /// <param name="requestContextFactory">The request context factory.</param>
-        /// <param name="policyRegistry">The policy registry.</param>
-        /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
-        public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactory handlerFactory,
-            IAmARequestContextFactory requestContextFactory,
-            IPolicyRegistry<string>  policyRegistry,
-            IAmAFeatureSwitchRegistry featureSwitchRegistry = null)
-        {
-            _subscriberRegistry = subscriberRegistry;
-            _handlerFactory = handlerFactory;
-            _requestContextFactory = requestContextFactory;
-            _policyRegistry = policyRegistry;
-            _featureSwitchRegistry = featureSwitchRegistry;
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
-        /// Use this constructor when no task queue support is required and only async handlers are used
-        /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="asyncHandlerFactory">The async handler factory.</param>
-        /// <param name="requestContextFactory">The request context factory.</param>
-        /// <param name="policyRegistry">The policy registry.</param>
-        /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
-        public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactoryAsync asyncHandlerFactory,
-            IAmARequestContextFactory requestContextFactory,
-            IPolicyRegistry<string>  policyRegistry,
-            IAmAFeatureSwitchRegistry featureSwitchRegistry = null)
-        {
-            _subscriberRegistry = subscriberRegistry;
-            _asyncHandlerFactory = asyncHandlerFactory;
+            _pipelineBuilderFactory = pipelineBuilderFactory;
             _requestContextFactory = requestContextFactory;
             _policyRegistry = policyRegistry;
             _featureSwitchRegistry = featureSwitchRegistry;
@@ -219,8 +168,7 @@ namespace Paramore.Brighter
         /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
         /// Use this constructor when both rpc and command processor support is required
         /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="handlerFactory">The handler factory.</param>
+        /// <param name="pipelineBuilderFactory">The pipeline builder factory.</param>
         /// <param name="requestContextFactory">The request context factory.</param>
         /// <param name="policyRegistry">The policy registry.</param>
         /// <param name="mapperRegistry">The mapper registry.</param>
@@ -229,16 +177,15 @@ namespace Paramore.Brighter
         /// <param name="messageStoreTimeout">How long should we wait to write to the message store</param>
         /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
         public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactory handlerFactory,
+            IAmAPipelineBuilderFactory pipelineBuilderFactory,
             IAmARequestContextFactory requestContextFactory,
-            IPolicyRegistry<string>  policyRegistry,
+            IPolicyRegistry<string> policyRegistry,
             IAmAMessageMapperRegistry mapperRegistry,
             IAmAMessageProducer messageProducer,
             int messageStoreTimeout = 300,
             IAmAFeatureSwitchRegistry featureSwitchRegistry = null,
             IAmAChannelFactory responseChannelFactory = null)
-            : this(subscriberRegistry, handlerFactory, requestContextFactory, policyRegistry)
+            : this(pipelineBuilderFactory, requestContextFactory, policyRegistry)
         {
             _mapperRegistry = mapperRegistry;
             _messageProducer = messageProducer;
@@ -251,8 +198,7 @@ namespace Paramore.Brighter
         /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
         /// Use this constructor when both task queue and command processor support is required
         /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="asyncHandlerFactory">The async handler factory.</param>
+        /// <param name="pipelineBuilderFactory">The pipeline builder factory.</param>
         /// <param name="requestContextFactory">The request context factory.</param>
         /// <param name="policyRegistry">The policy registry.</param>
         /// <param name="mapperRegistry">The mapper registry.</param>
@@ -261,16 +207,15 @@ namespace Paramore.Brighter
         /// <param name="messageStoreTimeout">How long should we wait to write to the message store</param>
         /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
         public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactoryAsync asyncHandlerFactory,
+            IAmAPipelineBuilderFactory pipelineBuilderFactory,
             IAmARequestContextFactory requestContextFactory,
-            IPolicyRegistry<string>  policyRegistry,
+            IPolicyRegistry<string> policyRegistry,
             IAmAMessageMapperRegistry mapperRegistry,
             IAmAMessageStoreAsync<Message> asyncMessageStore,
             IAmAMessageProducerAsync asyncMessageProducer,
             int messageStoreTimeout = 300,
             IAmAFeatureSwitchRegistry featureSwitchRegistry = null)
-            : this(subscriberRegistry, asyncHandlerFactory, requestContextFactory, policyRegistry, featureSwitchRegistry)
+            : this(pipelineBuilderFactory, requestContextFactory, policyRegistry, featureSwitchRegistry)
         {
             _mapperRegistry = mapperRegistry;
             _asyncMessageStore = asyncMessageStore;
@@ -283,9 +228,7 @@ namespace Paramore.Brighter
         /// Initializes a new instance of the <see cref="CommandProcessor"/> class.
         /// Use this constructor when both task queue and command processor support is required, and you want to inject a test logger
         /// </summary>
-        /// <param name="subscriberRegistry">The subscriber registry.</param>
-        /// <param name="handlerFactory">The handler factory.</param>
-        /// <param name="asyncHandlerFactory">The async handler factory.</param>
+        /// <param name="pipelineBuilderFactory">The pipeline builder factory.</param>
         /// <param name="requestContextFactory">The request context factory.</param>
         /// <param name="policyRegistry">The policy registry.</param>
         /// <param name="mapperRegistry">The mapper registry.</param>
@@ -296,9 +239,7 @@ namespace Paramore.Brighter
         /// <param name="messageStoreTimeout">How long should we wait to write to the message store</param>
         /// <param name="featureSwitchRegistry">The feature switch config provider.</param>
         public CommandProcessor(
-            IAmASubscriberRegistry subscriberRegistry,
-            IAmAHandlerFactory handlerFactory,
-            IAmAHandlerFactoryAsync asyncHandlerFactory,
+            IAmAPipelineBuilderFactory pipelineBuilderFactory,
             IAmARequestContextFactory requestContextFactory,
             IPolicyRegistry<string>  policyRegistry,
             IAmAMessageMapperRegistry mapperRegistry,
@@ -308,7 +249,7 @@ namespace Paramore.Brighter
             IAmAMessageProducerAsync asyncMessageProducer,
             int messageStoreTimeout = 300,
             IAmAFeatureSwitchRegistry featureSwitchRegistry = null)
-            : this(subscriberRegistry, handlerFactory, asyncHandlerFactory, requestContextFactory, policyRegistry, featureSwitchRegistry)
+            : this(pipelineBuilderFactory, requestContextFactory, policyRegistry, featureSwitchRegistry)
         {
             _mapperRegistry = mapperRegistry;
             _messageStore = messageStore;
@@ -327,14 +268,14 @@ namespace Paramore.Brighter
         /// </exception>
         public void Send<T>(T command) where T : class, IRequest
         {
-            if (_handlerFactory == null)
-                throw new InvalidOperationException("No handler factory defined.");
+            if (_pipelineBuilderFactory == null)
+                throw new InvalidOperationException("No pipeline builder factory defined.");
 
             var requestContext = _requestContextFactory.Create();
             requestContext.Policies = _policyRegistry;
             requestContext.FeatureSwitches = _featureSwitchRegistry;
 
-            using (var builder = new PipelineBuilder<T>(_subscriberRegistry, _handlerFactory))
+            using (var builder = _pipelineBuilderFactory.Create<T>())
             {
                 _logger.Value.InfoFormat("Building send pipeline for command: {0} {1}", command.GetType(), command.Id);
                 var handlerChain = builder.Build(requestContext);
@@ -355,14 +296,14 @@ namespace Paramore.Brighter
         /// <returns>awaitable <see cref="Task"/>.</returns>
         public async Task SendAsync<T>(T command, bool continueOnCapturedContext = false, CancellationToken cancellationToken = default(CancellationToken)) where T : class, IRequest
         {
-            if (_asyncHandlerFactory == null)
-                throw new InvalidOperationException("No async handler factory defined.");
+            if (_pipelineBuilderFactory == null)
+                throw new InvalidOperationException("No pipeline builder factory defined.");
 
             var requestContext = _requestContextFactory.Create();
             requestContext.Policies = _policyRegistry;
             requestContext.FeatureSwitches = _featureSwitchRegistry;
 
-            using (var builder = new PipelineBuilder<T>(_subscriberRegistry, _asyncHandlerFactory))
+            using (var builder = _pipelineBuilderFactory.CreateAsync<T>())
             {
                 _logger.Value.InfoFormat("Building send async pipeline for command: {0} {1}", command.GetType(), command.Id);
                 var handlerChain = builder.BuildAsync(requestContext, continueOnCapturedContext);
@@ -384,14 +325,14 @@ namespace Paramore.Brighter
         /// <param name="event">The event.</param>
         public void Publish<T>(T @event) where T : class, IRequest
         {
-            if (_handlerFactory == null)
-                throw new InvalidOperationException("No handler factory defined.");
+            if (_pipelineBuilderFactory == null)
+                throw new InvalidOperationException("No pipeline builder factory defined.");
 
             var requestContext = _requestContextFactory.Create();
             requestContext.Policies = _policyRegistry;
             requestContext.FeatureSwitches = _featureSwitchRegistry;
 
-            using (var builder = new PipelineBuilder<T>(_subscriberRegistry, _handlerFactory))
+            using (var builder = _pipelineBuilderFactory.Create<T>())
             {
                 _logger.Value.InfoFormat("Building send pipeline for event: {0} {1}", @event.GetType(), @event.Id);
                 var handlerChain = builder.Build(requestContext);
@@ -434,14 +375,14 @@ namespace Paramore.Brighter
         /// <returns>awaitable <see cref="Task"/>.</returns>
         public async Task PublishAsync<T>(T @event, bool continueOnCapturedContext = false, CancellationToken cancellationToken = default(CancellationToken)) where T : class, IRequest
         {
-            if (_asyncHandlerFactory == null)
-                throw new InvalidOperationException("No async handler factory defined.");
+            if (_pipelineBuilderFactory == null)
+                throw new InvalidOperationException("No pipeline builder factory defined.");
 
             var requestContext = _requestContextFactory.Create();
             requestContext.Policies = _policyRegistry;
             requestContext.FeatureSwitches = _featureSwitchRegistry;
 
-            using (var builder = new PipelineBuilder<T>(_subscriberRegistry, _asyncHandlerFactory))
+            using (var builder = _pipelineBuilderFactory.CreateAsync<T>())
             {
                 _logger.Value.InfoFormat("Building send async pipeline for event: {0} {1}", @event.GetType(), @event.Id);
 

@@ -24,13 +24,23 @@ THE SOFTWARE. */
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Paramore.Brighter
 {
     public class AsyncPipelines<TRequest> : IEnumerable<IHandleRequestsAsync<TRequest>> where TRequest : class, IRequest
     {
-        private readonly List<IHandleRequestsAsync<TRequest>> _filters = new List<IHandleRequestsAsync<TRequest>>();
+        private readonly List<IHandleRequestsAsync<TRequest>> _filters;
 
+        public AsyncPipelines() : this(new List<IHandleRequestsAsync<TRequest>>())
+        {
+        }
+
+        public AsyncPipelines(IEnumerable<IHandleRequestsAsync<TRequest>> filters)
+        {
+            _filters = filters.ToList();
+        }
+        
         public IEnumerator<IHandleRequestsAsync<TRequest>> GetEnumerator()
         {
             return _filters.GetEnumerator();

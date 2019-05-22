@@ -76,14 +76,11 @@ namespace Paramore.Brighter
         private IAmAMessageProducerAsync _asyncMessagingGateway;
         private IAmAMessageMapperRegistry _messageMapperRegistry;
         private IAmARequestContextFactory _requestContextFactory;
-        private IAmASubscriberRegistry _registry;
-        private IAmAHandlerFactory _handlerFactory;
-        private IAmAHandlerFactoryAsync _asyncHandlerFactory;
+        private IAmAPipelineBuilderFactory _pipelineBuilderFactory;
         private IPolicyRegistry<string> _policyRegistry;
         private IAmAFeatureSwitchRegistry _featureSwitchRegistry;
         private IAmAChannelFactory _responseChannelFactory;
         private int _messageStoreWriteTimeout;
-        private int _messagingGatewaySendTimeout;
         private bool _useTaskQueues = false;
         private bool _useRequestReplyQueues = false;
 
@@ -108,9 +105,16 @@ namespace Paramore.Brighter
         /// <returns>INeedPolicy.</returns>
         public INeedPolicy Handlers(HandlerConfiguration handlerConfiguration)
         {
-            _registry = handlerConfiguration.SubscriberRegistry;
-            _handlerFactory = handlerConfiguration.HandlerFactory;
-            _asyncHandlerFactory = handlerConfiguration.AsyncHandlerFactory;
+            _pipelineBuilderFactory = new PipelineBuilderFactory(
+                handlerConfiguration.SubscriberRegistry,
+                handlerConfiguration.HandlerFactory,
+                handlerConfiguration.AsyncHandlerFactory);
+            return this;
+        }
+
+        public INeedPolicy Handlers(IAmAPipelineBuilderFactory pipelineBuilderFactory)
+        {
+            _pipelineBuilderFactory = pipelineBuilderFactory;
             return this;
         }
 
@@ -161,7 +165,6 @@ namespace Paramore.Brighter
             _asyncMessagingGateway = configuration.AsyncMessageProducer;
             _messageMapperRegistry = configuration.MessageMapperRegistry;
             _messageStoreWriteTimeout = configuration.MessageStoreWriteTimeout;
-            _messagingGatewaySendTimeout = configuration.MessagingGatewaySendTimeout;
             return this;
         }
 
@@ -188,7 +191,6 @@ namespace Paramore.Brighter
             _asyncMessagingGateway = configuration.AsyncMessageProducer;
             _messageMapperRegistry = configuration.MessageMapperRegistry;
             _messageStoreWriteTimeout = configuration.MessageStoreWriteTimeout;
-            _messagingGatewaySendTimeout = configuration.MessagingGatewaySendTimeout;
             _responseChannelFactory = configuration.ResponseChannelFactory;
              
             return this;
@@ -226,10 +228,7 @@ namespace Paramore.Brighter
             if (!(_useTaskQueues || _useRequestReplyQueues))
             {
                 return new CommandProcessor(
-                    
-                    subscriberRegistry: _registry,
-                    handlerFactory: _handlerFactory,
-                    asyncHandlerFactory: _asyncHandlerFactory,
+                    pipelineBuilderFactory: _pipelineBuilderFactory,
                     requestContextFactory: _requestContextFactory,
                     policyRegistry: _policyRegistry,
                     featureSwitchRegistry: _featureSwitchRegistry);
@@ -237,9 +236,7 @@ namespace Paramore.Brighter
             else if (_useTaskQueues)
             {
                 return new CommandProcessor(
-                    subscriberRegistry: _registry,
-                    handlerFactory: _handlerFactory,
-                    asyncHandlerFactory: _asyncHandlerFactory,
+                    pipelineBuilderFactory: _pipelineBuilderFactory,
                     requestContextFactory: _requestContextFactory,
                     policyRegistry: _policyRegistry,
                     mapperRegistry: _messageMapperRegistry,
@@ -253,9 +250,8 @@ namespace Paramore.Brighter
             }
             else if (_useRequestReplyQueues)
             {
-                 return new CommandProcessor(
-                    subscriberRegistry: _registry,
-                    handlerFactory: _handlerFactory,
+                return new CommandProcessor(
+                    pipelineBuilderFactory: _pipelineBuilderFactory,
                     requestContextFactory: _requestContextFactory,
                     policyRegistry: _policyRegistry,
                     mapperRegistry: _messageMapperRegistry,
@@ -282,6 +278,8 @@ namespace Paramore.Brighter
         /// <param name="theRegistry">The registry.</param>
         /// <returns>INeedPolicy.</returns>
         INeedPolicy Handlers(HandlerConfiguration theRegistry);
+
+        INeedPolicy Handlers(IAmAPipelineBuilderFactory pipelineBuilderFactory);
     }
 
     /// <summary>
